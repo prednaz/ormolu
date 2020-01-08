@@ -85,15 +85,14 @@ adjacentImports import1 import2 =
     realSrcLoc $
     srcSpanStart $
     getLoc $
-    import2
-  ) ==
+    import2)
+  ==
   (
     flip advanceSrcLoc '\n' $
     realSrcLoc $
     srcSpanEnd $
     getLoc $
-    import1
-  )
+    import1)
 
 realSrcLoc :: SrcLoc -> RealSrcLoc
 realSrcLoc (RealSrcLoc result) = result
