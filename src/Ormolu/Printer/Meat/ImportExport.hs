@@ -5,13 +5,17 @@
 -- | Rendering of import and export lists.
 module Ormolu.Printer.Meat.ImportExport
   ( p_hsmodExports,
-    p_hsmodImport,
+    p_hsmodImports,
   )
 where
 
 import Control.Monad
+import Data.Foldable (sequenceA_)
+import Data.List (intersperse)
+import Data.List.GroupBy (groupBy)
 import GHC
 import HsImpExp (IE (..))
+import Ormolu.Imports (sortImports)
 import Ormolu.Printer.Combinators
 import Ormolu.Printer.Meat.Common
 import Ormolu.Utils
@@ -25,6 +29,16 @@ p_hsmodExports xs =
   parens N . sitcc $ do
     layout <- getLayout
     sep breakpoint (sitcc . located' (uncurry (p_lie layout))) (attachPositions xs)
+
+p_hsmodImports :: [LImportDecl GhcPs] -> R ()
+p_hsmodImports hsmodImports = (
+  sequenceA_ $
+  concat $
+  intersperse [newline] $
+  (map . map) (located' p_hsmodImport) $
+  map sortImports $
+  groupBy adjacentImports $
+  hsmodImports)
 
 p_hsmodImport :: ImportDecl GhcPs -> R ()
 p_hsmodImport ImportDecl {..} = do
@@ -63,6 +77,25 @@ p_hsmodImport ImportDecl {..} = do
           sep breakpoint (sitcc . located' (uncurry (p_lie layout))) (attachPositions xs)
     newline
 p_hsmodImport (XImportDecl NoExt) = notImplemented "XImportDecl"
+
+adjacentImports :: LImportDecl GhcPs -> LImportDecl GhcPs -> Bool
+adjacentImports import1 import2 =
+  (
+    realSrcLoc $
+    srcSpanStart $
+    getLoc $
+    import2)
+  ==
+  (
+    flip advanceSrcLoc '\n' $
+    realSrcLoc $
+    srcSpanEnd $
+    getLoc $
+    import1)
+
+realSrcLoc :: SrcLoc -> RealSrcLoc
+realSrcLoc (RealSrcLoc result) = result
+realSrcLoc _ = error "Import at UnhelpfulLoc"
 
 p_lie :: Layout -> (Int, Int) -> IE GhcPs -> R ()
 p_lie encLayout (i, totalItems) = \case

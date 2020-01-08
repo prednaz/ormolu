@@ -7,12 +7,9 @@ module Ormolu.Printer.Meat.Module
   )
 where
 
-import Data.Foldable (forM_, sequenceA_)
-import Data.List (intersperse)
-import Data.List.GroupBy (groupBy)
+import Control.Monad
 import qualified Data.Text as T
 import GHC
-import Ormolu.Imports
 import Ormolu.Parser.Pragma
 import Ormolu.Printer.Combinators
 import Ormolu.Printer.Comments
@@ -65,35 +62,9 @@ p_hsModule shebangs pragmas (L moduleSpan HsModule {..}) = do
         txt "where"
         newline
     newline
-    (
-      sequenceA_ $
-      concat $
-      intersperse [newline] $
-      (map . map) (located' p_hsmodImport) $
-      map sortImports $
-      groupBy adjacentImports $
-      hsmodImports)
+    p_hsmodImports hsmodImports
     newline
     switchLayout (getLoc <$> hsmodDecls) $ do
       p_hsDecls Free hsmodDecls
       newline
       spitRemainingComments
-
-adjacentImports :: LImportDecl GhcPs -> LImportDecl GhcPs -> Bool
-adjacentImports import1 import2 =
-  (
-    realSrcLoc $
-    srcSpanStart $
-    getLoc $
-    import2)
-  ==
-  (
-    flip advanceSrcLoc '\n' $
-    realSrcLoc $
-    srcSpanEnd $
-    getLoc $
-    import1)
-
-realSrcLoc :: SrcLoc -> RealSrcLoc
-realSrcLoc (RealSrcLoc result) = result
-realSrcLoc _ = error "Import at UnhelpfulLoc"
