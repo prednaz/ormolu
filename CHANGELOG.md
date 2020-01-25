@@ -1,4 +1,9 @@
-## Unreleased
+## Ormolu 0.0.3.1
+
+* Fixed rendering of record updates with the record dot preprocessor syntax
+  [Issue 498](https://github.com/tweag/ormolu/issues/498).
+
+## Ormolu 0.0.3.0
 
 * Fixed an issue related to unnecessary use of curly braces. [Issue
   473](https://github.com/tweag/ormolu/issues/473).
@@ -10,6 +15,18 @@
 
 * Added support for record dot pre-processor when used via the plugin.
   [Issue 486](https://github.com/tweag/ormolu/issues/486).
+
+* Stopped hanging record constructors and improved placing
+  potentially-hanging consturctions in the presence of comments. [Issue
+  447](https://github.com/tweag/ormolu/issues/447).
+
+* Fixed indentation in presence of type applications. [Issue
+  493](https://github.com/tweag/ormolu/issues/493).
+
+* Class and instance declarations now do not have a blank line after
+  `where`. Grouping of methods from the original input is also preserved
+  with some normalizations. [Issue
+  431](https://github.com/tweag/ormolu/issues/431).
 
 ## Ormolu 0.0.2.0
 

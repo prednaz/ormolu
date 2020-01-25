@@ -542,8 +542,10 @@ p_hsExpr' s = \case
         -- We need to handle the last argument specially if it is a
         -- hanging construct, so separate it from the rest.
         (initp, lastp) = (NE.init args, NE.last args)
-        initSpan = combineSrcSpans' $ getLoc f :| map getLoc initp
-        -- Hang the last argument only if the initial arguments spans one
+        initSpan =
+          combineSrcSpans' $
+            getLoc f :| [(srcLocSpan . srcSpanStart . getLoc) lastp]
+        -- Hang the last argument only if the initial arguments span one
         -- line.
         placement =
           if isOneLineSpan initSpan
@@ -563,6 +565,7 @@ p_hsExpr' s = \case
             indent =
               case func of
                 L _ (HsPar NoExt _) -> inci
+                L _ (HsAppType NoExt _ _) -> inci
                 L _ (HsMultiIf NoExt _) -> inci
                 L spn _ ->
                   if isOneLineSpan spn
@@ -696,7 +699,14 @@ p_hsExpr' s = \case
       sep (comma >> breakpoint) sitcc (fields <> dotdot)
   RecordUpd {..} -> do
     located rupd_expr p_hsExpr
-    breakpoint
+    useRecordDot' <- useRecordDot
+    let mrs sp = case getLoc sp of
+          RealSrcSpan r -> Just r
+          _ -> Nothing
+    let isPluginForm =
+          ((1 +) . srcSpanEndCol <$> mrs rupd_expr)
+            == (srcSpanStartCol <$> mrs (head rupd_flds))
+    unless (useRecordDot' && isPluginForm) breakpoint
     let updName f =
           f
             { hsRecFieldLbl = case unLoc $ hsRecFieldLbl f of
@@ -1211,7 +1221,6 @@ exprPlacement = \case
   HsCase NoExt _ _ -> Hanging
   HsDo NoExt DoExpr _ -> Hanging
   HsDo NoExt MDoExpr _ -> Hanging
-  RecordCon NoExt _ _ -> Hanging
   -- If the rightmost expression in an operator chain is hanging, make the
   -- whole block hanging; so that we can use the common @f = foo $ do@
   -- style.
